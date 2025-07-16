@@ -12,6 +12,8 @@ services:
       - LOG_DIR=/logs
       - PARAMS_DIR=/params
       - HF_TOKEN=
+      - ALLOWED_ORIGINS=https://cryptomaltese.com
+      - ENV=production
     volumes:
       - ../models:/models
       - ../logs:/logs
@@ -25,7 +27,7 @@ services:
     container_name: aidalneo-nginx
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ../certs:/etc/letsencrypt
+      - ../certs:/etc/letsencrypt  # Mount SSL certs here
     ports:
       - "80:80"
       - "443:443"

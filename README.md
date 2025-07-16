@@ -38,5 +38,82 @@ Aid-al-Neo is a modular, production-ready AI model serving platform. It exposes 
 - [Requirements](documentation/requirements.md)
 - [Validation Criteria](documentation/validation-criteria.md)
 
+## Docker Deployment
+
+### Prerequisites
+- Docker and Docker Compose installed
+- Domain (e.g., cryptomaltese.com) pointed to your server
+- SSL certificates (Let's Encrypt recommended; see below)
+
+### 1. Build and Run the System
+From the project root:
+```bash
+cd docker
+# Build and start all services
+sudo docker-compose up --build -d
+```
+
+### 2. Environment Variables
+Set environment variables in `docker-compose.yml` or via a `.env` file:
+- `API_KEY`: Main API key for user access
+- `ADMIN_TOKEN`: Admin token for privileged endpoints
+- `MODEL_CACHE_DIR`, `LOG_DIR`, `PARAMS_DIR`: Data persistence paths
+- `HF_TOKEN`: (Optional) Hugging Face token for private models
+
+### 3. Volumes and Persistence
+- Models, logs, and parameters are persisted via Docker volumes:
+  - `../models:/models`
+  - `../logs:/logs`
+  - `../params:/params`
+
+### 4. SSL Certificates
+- Place your SSL certificates in `certs/` (or use Let's Encrypt)
+- Nginx is preconfigured for SSL termination and HTTP→HTTPS redirection
+- Certificates are mounted at `/etc/letsencrypt` in the Nginx container
+
+### 5. Accessing the API
+- API: `https://cryptomaltese.com/api/v1/`
+- Swagger UI: `https://cryptomaltese.com/docs`
+
+### 6. Stopping and Updating
+```bash
+sudo docker-compose down   # Stop all services
+sudo docker-compose pull   # Update images (if using remote images)
+sudo docker-compose up --build -d  # Rebuild and restart
+```
+
+### 7. Production Best Practices
+- Use strong, unique API keys and admin tokens
+- Restrict CORS in production (see `backend/main.py`)
+- Monitor logs and resource usage
+- Regularly backup models, logs, and params
+- Keep Docker and dependencies up to date
+
+For more details, see the `docker/` directory and documentation.
+
+### SSL Certificate Setup
+To automate SSL certificate installation and renewal for `cryptomaltese.com`:
+
+1. SSH into your server and switch to the project root.
+2. Run the SSL fix script as root:
+   ```bash
+   cd docker
+   sudo ./fix_ssl_certificate.sh
+   ```
+   - This will:
+     - Check DNS resolution
+     - Obtain a Let's Encrypt SSL certificate
+     - Place certs in `../certs/` (used by Nginx)
+     - Restart Docker services
+     - Set up auto-renewal via cron
+3. After completion, your API and docs will be available at:
+   - `https://cryptomaltese.com/api/v1/`
+   - `https://cryptomaltese.com/docs`
+
+**Note:**
+- Edit `docker/fix_ssl_certificate.sh` to change domain/email if needed.
+- Certbot must be installed on the server (`sudo apt install certbot`).
+- The script will stop/start Docker services as needed.
+
 ## License
 MIT 
