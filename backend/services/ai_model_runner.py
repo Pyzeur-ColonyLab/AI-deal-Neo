@@ -26,7 +26,7 @@ class AIModelRunner:
         config: dict with extra info, e.g., base_model_name for adapters
         """
         # Determine if this is an adapter (LoRA/PEFT) or a base model
-        model_dir = os.path.dirname(model_path)
+        model_dir = os.path.abspath(os.path.dirname(model_path))
         adapter_file = os.path.join(model_dir, "adapter_model.safetensors")
         adapter_config_file = os.path.join(model_dir, "adapter_config.json")
         is_adapter = os.path.exists(adapter_file) and os.path.exists(adapter_config_file)
@@ -38,7 +38,7 @@ class AIModelRunner:
             base_model_name = config["base_model_name"]
             self.tokenizer = AutoTokenizer.from_pretrained(base_model_name)
             base_model = AutoModelForCausalLM.from_pretrained(base_model_name, device_map=None)
-            # Load adapter using PEFT
+            # Load adapter using PEFT (pass the directory, not the file)
             self.model = PeftModel.from_pretrained(base_model, model_dir)
             self.model_id = f"{base_model_name}+adapter"
             self.model_format = model_format
