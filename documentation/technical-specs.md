@@ -92,6 +92,28 @@ graph TB
 - Logging and monitoring module.
 - Authentication middleware.
 
+## 1.1 Target Deployment Instance and Operating System
+
+**Recommended Production Instance:**
+- **Gabarit:** a16-ram32-disk80-perf1 (16 vCPUs, 32 GB RAM, 80 GB disk)
+- **Disk Expansion:** If 80 GB is insufficient, attach additional storage if supported, or request a custom flavor (targeting 100–150 GB total disk).
+- **Operating System:** Ubuntu 22.04 LTS Jammy Jellyfish (QCOW2 image)
+
+**Rationale:**
+- 16 vCPUs: Supports high concurrency and fast AI inference, matching anticipated load.
+- 32 GB RAM: Sufficient for large language models and concurrent requests.
+- 80 GB+ Disk: Accommodates multiple models, logs, and cache. Expandable as needed.
+- Ubuntu 22.04 LTS: Stable, secure, and widely supported for AI/ML and web workloads.
+
+**Summary Table:**
+| Resource | Minimum Spec | Recommended Gabarit | Recommended OS |
+|----------|--------------|---------------------|-------------------------------|
+| vCPUs    | 16           | a16-ram32-disk80-perf1 | Ubuntu 22.04 LTS Jammy Jellyfish |
+| RAM      | 32 GB        |                     |                               |
+| Disk     | 80 GB+ (expandable) |             |                               |
+
+**Note:** If you require 100–150 GB disk, ensure your provider supports additional storage volumes or request a custom instance. Document this selection in deployment and architecture records for traceability and approval.
+
 ## 2. API Specifications
 
 ### POST /api/v1/chat
