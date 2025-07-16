@@ -13,6 +13,8 @@ class HuggingFaceHubClient:
     def download_model(self, model_name: str, model_format: Optional[str] = None, cache_dir: Optional[str] = None) -> str:
         """
         Download a model from Hugging Face Hub. Returns the local path to the model file.
+        For adapter models, always prefer 'adapter_model.safetensors' if present.
+        Optionally, also download 'adapter_config.json' if present.
         """
         # Determine file extension by format
         format_ext = {
@@ -22,24 +24,41 @@ class HuggingFaceHubClient:
             "onnx": ".onnx"
         }
         ext = format_ext.get(model_format, None)
-        # Try to find the correct file in repo
         files = self.api.list_repo_files(model_name, token=self.token)
         target_file = None
-        if ext:
+
+        # 1. Prefer 'adapter_model.safetensors' for adapter models
+        if 'adapter_model.safetensors' in files:
+            target_file = 'adapter_model.safetensors'
+        # 2. Otherwise, prefer any .safetensors file
+        elif ext == '.safetensors' or not ext:
+            safetensors_files = [f for f in files if f.endswith('.safetensors')]
+            if safetensors_files:
+                target_file = safetensors_files[0]
+        # 3. Otherwise, use extension-based search
+        elif ext:
             for f in files:
                 if f.endswith(ext):
                     target_file = f
                     break
+        # 4. Fallback: pick first file
         if not target_file and files:
-            # Fallback: pick first file
             target_file = files[0]
         if not target_file:
             raise RuntimeError(f"No suitable model file found for {model_name}")
-        # Download
+        # Download main model file
         local_path = hf_hub_download(
             repo_id=model_name,
             filename=target_file,
             cache_dir=cache_dir,
             token=self.token if self.token else None
         )
+        # Optionally, download adapter_config.json if present
+        if 'adapter_config.json' in files:
+            hf_hub_download(
+                repo_id=model_name,
+                filename='adapter_config.json',
+                cache_dir=cache_dir,
+                token=self.token if self.token else None
+            )
         return local_path 
