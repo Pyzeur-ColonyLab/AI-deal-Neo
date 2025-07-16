@@ -115,5 +115,47 @@ To automate SSL certificate installation and renewal for `cryptomaltese.com`:
 - Certbot must be installed on the server (`sudo apt install certbot`).
 - The script will stop/start Docker services as needed.
 
+## Using Adapter (PEFT/LoRA) Models
+
+1. **Download the adapter model via the API:**
+   ```bash
+   curl -X POST "https://cryptomaltese.com/api/v1/models/download" \
+     -H "Authorization: Bearer adminchangeme" \
+     -H "Content-Type: application/json" \
+     -d '{"model_name": "Pyzeur/Code-du-Travail-mistral-finetune"}'
+   ```
+2. **Load the model via the API:**
+   ```bash
+   curl -X POST "https://cryptomaltese.com/api/v1/models/adapter_model.safetensors/load" \
+     -H "Authorization: Bearer adminchangeme"
+   ```
+3. **Test inference:**
+   ```bash
+   curl -X POST "https://cryptomaltese.com/api/v1/chat" \
+     -H "Authorization: Bearer changeme" \
+     -H "Content-Type: application/json" \
+     -d '{"message": "Hello!", "channel": "webapp", "user_id": "user123"}'
+   ```
+
+## After Pulling Latest Code on Server
+
+1. Pull the latest code:
+   ```bash
+   git pull origin master
+   ```
+2. Rebuild and restart the backend container:
+   ```bash
+   cd docker
+   docker compose down
+   docker compose up -d
+   ```
+3. Verify the Hugging Face token is set in the container:
+   ```bash
+   sudo docker exec -it aidalneo-backend /bin/bash
+   echo $HF_TOKEN
+   exit
+   ```
+4. Download, load, and test the adapter model as above.
+
 ## License
 MIT 

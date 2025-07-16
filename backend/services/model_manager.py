@@ -43,11 +43,26 @@ class ModelManager:
     def load_model(self, model_id: str, config: Optional[dict] = None) -> ModelInfo:
         """
         Load a model into memory, unloading any currently loaded model.
+        If the model is an adapter, pass base_model_name in config.
         """
         if model_id not in self.models:
             raise ValueError(f"Model {model_id} not found")
         if self.loaded_model_id and self.loaded_model_id != model_id:
             self.unload_model(self.loaded_model_id)
+        # Detect if this is an adapter model
+        model_info = self.models[model_id]
+        model_path = os.path.join(self.model_cache_dir, model_id)
+        model_dir = os.path.dirname(model_path)
+        adapter_file = os.path.join(model_dir, "adapter_model.safetensors")
+        adapter_config_file = os.path.join(model_dir, "adapter_config.json")
+        is_adapter = os.path.exists(adapter_file) and os.path.exists(adapter_config_file)
+        if is_adapter:
+            # For now, hardcode base model name; in production, store this in ModelInfo or config
+            base_model_name = "mistralai/Mistral-7B-Instruct-v0.3"
+            if config is None:
+                config = {}
+            config["base_model_name"] = base_model_name
+            model_info.description = f"Adapter for {base_model_name}"
         # Simulate loading (real logic in AIModelRunner)
         self.loaded_model_id = model_id
         self.models[model_id].status = "loaded"
