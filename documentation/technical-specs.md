@@ -1,3 +1,85 @@
+# Technical Architecture
+
+## System Architecture Diagram
+
+```mermaid
+graph TB
+    subgraph "External Clients"
+        TG[Telegram Bot]
+        WA[Web Application]
+        MS[Mail Server]
+        UI[Swagger UI]
+    end
+    
+    subgraph "API Gateway"
+        NG[Nginx Reverse Proxy]
+        SSL[SSL/TLS Termination]
+    end
+    
+    subgraph "API Server"
+        API[FastAPI/Flask Application]
+        AUTH[Authentication Middleware]
+        VAL[Validation Layer]
+        LOG[Logging & Monitoring]
+        SWAG[Swagger UI]
+    end
+    
+    subgraph "Core Services"
+        MM[Model Manager]
+        AI[AI Model Runner]
+        PM[Parameter Manager]
+        LM[Log Manager]
+    end
+    
+    subgraph "Storage"
+        MC[Model Cache]
+        LC[Log Storage]
+        PC[Parameter Storage]
+    end
+    
+    subgraph "External APIs"
+        HF[Hugging Face Hub]
+    end
+    
+    TG --> NG
+    WA --> NG
+    MS --> NG
+    UI --> NG
+    NG --> SSL
+    SSL --> API
+    API --> AUTH
+    AUTH --> VAL
+    VAL --> LOG
+    VAL --> SWAG
+    VAL --> MM
+    VAL --> AI
+    VAL --> PM
+    VAL --> LM
+    MM --> MC
+    AI --> MC
+    PM --> PC
+    LM --> LC
+    MM --> HF
+```
+
+## Component List for Implementation
+
+- **Nginx Reverse Proxy**: SSL/TLS termination, HTTP to HTTPS redirection, forwarding to API server
+- **API Server (FastAPI/Flask)**: Main RESTful API, OpenAPI/Swagger UI
+- **Authentication Middleware**: API key/admin token validation, permission checks
+- **Validation Layer**: Input validation, error handling
+- **Logging & Monitoring**: Request/response logging, health/status endpoints, log rotation/purging
+- **Model Manager**: List/load/unload/download models, enforce single-model-in-memory, track status
+- **AI Model Runner**: Interface to AI model code, inference, support for multiple formats
+- **Parameter Manager**: Retrieve/update/reset parameters, validation, change tracking
+- **Log Manager**: Log storage and cleanup
+- **Model Cache**: Store downloaded/loaded models
+- **Log Storage**: Persist logs
+- **Parameter Storage**: Persist parameter configs
+- **Hugging Face Hub Client**: Download models, handle authentication
+
+---
+
 # Technical Specifications
 
 **Version:** v1.0.0

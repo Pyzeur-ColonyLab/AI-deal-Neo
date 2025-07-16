@@ -1,7 +1,7 @@
 # Validation Criteria
 
 **Version:** v1.0.0
-**Approval Status:** Draft
+**Approval Status:** Approved
 
 ## 1. Test Scenarios for Each Requirement
 

@@ -1,8 +1,7 @@
 # API Documentation
 
 **Version:** v1.0.0  
-**Base URL:** https://cryptomaltese.com/api/v1  
-**Documentation UI:** https://cryptomaltese.com/docs
+
 
 ---
 
@@ -852,5 +851,3 @@ curl -X GET "https://cryptomaltese.com/api/v1/admin/system-status" \
 ---
 
 **Document Version:** v1.0.0  
-**Last Updated:** 2024-01-15  
-**Next Review:** 2024-02-15 
