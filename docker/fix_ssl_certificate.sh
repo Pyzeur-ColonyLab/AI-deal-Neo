@@ -60,7 +60,7 @@ check_dns_resolution() {
         exit 1
     fi
     if [[ -n "$RESOLVED_IP" ]] && [[ "$RESOLVED_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        SERVER_IP=$(curl -s ifconfig.me)
+        SERVER_IP=$(curl -4 -s ifconfig.me)
         if [[ "$RESOLVED_IP" == "$SERVER_IP" ]]; then
             print_status "DNS resolution successful: $DOMAIN -> $RESOLVED_IP"
             return 0

@@ -90,3 +90,6 @@ Desktop.ini
 
 # Git
 .git/ 
+._*
+certs/
+server.log
