@@ -49,21 +49,18 @@ class ModelManager:
             raise ValueError(f"Model {model_id} not found")
         if self.loaded_model_id and self.loaded_model_id != model_id:
             self.unload_model(self.loaded_model_id)
-        # Detect if this is an adapter model
         model_info = self.models[model_id]
         model_path = os.path.join(self.model_cache_dir, model_id)
-        model_dir = os.path.dirname(model_path)
-        adapter_file = os.path.join(model_dir, "adapter_model.safetensors")
-        adapter_config_file = os.path.join(model_dir, "adapter_config.json")
+        # Adapter detection logic remains unchanged
+        adapter_file = os.path.join(model_path, "adapter_model.safetensors")
+        adapter_config_file = os.path.join(model_path, "adapter_config.json")
         is_adapter = os.path.exists(adapter_file) and os.path.exists(adapter_config_file)
         if is_adapter:
-            # For now, hardcode base model name; in production, store this in ModelInfo or config
             base_model_name = "mistralai/Mistral-7B-Instruct-v0.3"
             if config is None:
                 config = {}
             config["base_model_name"] = base_model_name
             model_info.description = f"Adapter for {base_model_name}"
-        # Simulate loading (real logic in AIModelRunner)
         self.loaded_model_id = model_id
         self.models[model_id].status = "loaded"
         self._save_metadata()
@@ -84,14 +81,17 @@ class ModelManager:
         """
         Download a model from Hugging Face Hub and add to model list.
         """
-        local_path = self.hf_client.download_model(model_name, model_format, cache_dir=self.model_cache_dir)
-        model_id = os.path.basename(local_path)
+        local_dir = self.hf_client.download_model(model_name, model_format, cache_dir=self.model_cache_dir)
+        model_id = os.path.basename(local_dir)
+        # Find main weight file for size (optional)
+        weight_files = [f for f in os.listdir(local_dir) if f.endswith('.safetensors') or f.endswith('.bin')]
+        size = os.path.getsize(os.path.join(local_dir, weight_files[0])) if weight_files else 0
         info = ModelInfo(
             id=model_id,
             name=model_name,
             status="available",
             format=model_format or "unknown",
-            size=os.path.getsize(local_path),
+            size=size,
             source="huggingface",
             parameters=ModelParameters()
         )

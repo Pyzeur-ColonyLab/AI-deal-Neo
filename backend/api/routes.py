@@ -61,9 +61,6 @@ def load_model(model_id: str, req: LoadModelRequest):
     try:
         model = model_manager.load_model(model_id, req.config)
         model_path = os.path.join(model_manager.model_cache_dir, model.id)
-        # Patch: if adapter model, pass directory instead of file
-        if model.id.endswith('.safetensors'):
-            model_path = os.path.dirname(model_path)
         ai_runner.load(model_path, model.format, req.config)
         resp = LoadModelResponse(
             status="success",
