@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from backend.api.routes import router as api_router
-from backend.services.hf_model_service import HFModelService
+from backend.api.routes import router as api_router, hf_model_service
 import os
 import logging
 import asyncio
@@ -40,16 +39,14 @@ async def startup_event():
     """Pre-load the model when the application starts"""
     logger.info("Starting model pre-loading...")
     try:
-        # Initialize the HF model service
-        hf_service = HFModelService()
-        
+        # Use the same HF model service instance that will be used by routes
         # Load the Pyzeur/Code-du-Travail-mistral-finetune model
         # Use the same base model as the original working script
         base_model = "mistralai/Mistral-7B-Instruct-v0.3"
         finetuned_model = "Pyzeur/Code-du-Travail-mistral-finetune"
         
         logger.info(f"Loading model: {finetuned_model}")
-        hf_service.load_model(base_model, finetuned_model)
+        hf_model_service.load_model(base_model, finetuned_model)
         logger.info("Model loaded successfully and ready for inference!")
         
     except Exception as e:

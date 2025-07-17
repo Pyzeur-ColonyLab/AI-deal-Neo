@@ -12,7 +12,22 @@ class HFModelService:
     HFModelService provides a unified interface for loading, unloading, and running inference on Hugging Face models,
     including support for PEFT/LoRA adapters. This class is designed to be used as a singleton service by the API layer.
     """
+    _instance = None
+    _lock = threading.Lock()
+    
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super(HFModelService, cls).__new__(cls)
+        return cls._instance
+    
     def __init__(self):
+        # Only initialize once
+        if hasattr(self, '_initialized'):
+            return
+        self._initialized = True
+        
         # Model and tokenizer objects
         self.model = None
         self.tokenizer = None
