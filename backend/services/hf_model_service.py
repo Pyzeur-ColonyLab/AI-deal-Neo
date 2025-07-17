@@ -46,7 +46,7 @@ class HFModelService:
         os.environ["MKL_NUM_THREADS"] = "16"
         torch.set_num_threads(16)
         # Login to Hugging Face Hub (token should be set in env or config)
-        login()
+        login(token=os.getenv("HF_TOKEN"))
 
     def load_model(self, base_model_id: str, finetuned_model_id: str = None, config: dict = None):
         """
