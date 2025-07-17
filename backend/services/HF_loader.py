@@ -166,7 +166,7 @@ def main():
             
             # Generate and display response
             response = generate_response(user_question)
-            
+            print("\n📝 Réponse :\n" + response.strip())
             # Ask if user wants to continue
             print("\n" + "-" * 40)
             continue_choice = input("🔄 Ask another question? (y/n): ").strip().lower()
