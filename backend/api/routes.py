@@ -10,14 +10,16 @@ from backend.models.schemas import (
 from backend.services.model_manager import ModelManager
 from backend.services.parameter_manager import ParameterManager
 from backend.services.log_manager import LogManager
-from backend.services.ai_model_runner import AIModelRunner
+from backend.services.hf_model_service import HFModelService  # <-- Use new service
+from backend.services.system_manager import SystemManager  # <-- Import SystemManager
 import time
 import os
 
 model_manager = ModelManager()
 parameter_manager = ParameterManager()
 log_manager = LogManager()
-ai_runner = AIModelRunner()
+hf_model_service = HFModelService()  # <-- Singleton instance
+system_manager = SystemManager()  # <-- Instantiate
 
 router = APIRouter()
 
@@ -36,7 +38,8 @@ def chat(request: ChatRequest):
     if request.parameters:
         params.update(request.parameters)
     try:
-        response_text = ai_runner.generate_response(request.message, params)
+        # Use HFModelService for inference
+        response_text = hf_model_service.generate_response(request.message, params)
     except Exception as e:
         log_manager.log_response({"error": str(e)})
         raise HTTPException(status_code=500, detail=str(e))
@@ -61,7 +64,11 @@ def load_model(model_id: str, req: LoadModelRequest):
     try:
         model = model_manager.load_model(model_id, req.config)
         model_path = os.path.join(model_manager.model_cache_dir, model.id)
-        ai_runner.load(model_path, model.format, req.config)
+        # Use HFModelService to load the model
+        # Assume model_id is the base model, and req.config may contain 'finetuned_model_id'
+        base_model_id = model.name  # model.name is the Hugging Face model name
+        finetuned_model_id = req.config.get("finetuned_model_id") if req.config else None
+        hf_model_service.load_model(base_model_id, finetuned_model_id, req.config)
         resp = LoadModelResponse(
             status="success",
             message=f"Model {model_id} loaded",
@@ -77,7 +84,8 @@ def unload_model(model_id: str):
     try:
         ok = model_manager.unload_model(model_id)
         if ok:
-            ai_runner.unload()
+            # Use HFModelService to unload
+            hf_model_service.unload_model()
             resp = UnloadModelResponse(
                 status="success",
                 message=f"Model {model_id} unloaded",
@@ -108,14 +116,39 @@ def download_model(req: DownloadModelRequest):
 # --- Admin Endpoints ---
 @router.post("/admin/cleanup", response_model=CleanupResponse, dependencies=[Depends(require_admin_token)])
 def admin_cleanup(req: CleanupRequest):
-    # For now, only log cleanup is implemented
-    result = log_manager.cleanup_logs()
+    """
+    Trigger system cleanup operations: logs, cache, models, temp, or full cleanup.
+    """
+    operations_map = {
+        "clean_logs": system_manager.clean_logs,
+        "clean_cache": system_manager.clean_cache,
+        "clean_models": system_manager.clean_models,
+        "clean_temp": system_manager.clean_temp,
+        "full_cleanup": system_manager.full_cleanup,
+    }
+    results = []
+    space_freed = 0
+    operations_completed = []
+    started_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    for op in req.operations:
+        func = operations_map.get(op)
+        if func:
+            result = func()
+            results.append(result)
+            operations_completed.append(op)
+            # For full_cleanup, sum nested results
+            if op == "full_cleanup" and "results" in result:
+                space_freed += result.get("space_freed", 0)
+                for sub in result["results"]:
+                    space_freed += sub.get("space_freed", 0)
+            else:
+                space_freed += result.get("space_freed", 0)
     return CleanupResponse(
         status="success",
         message="Cleanup completed",
-        operations_completed=["clean_logs"],
-        space_freed=result["space_freed"],
-        started_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        operations_completed=operations_completed,
+        space_freed=space_freed,
+        started_at=started_at
     )
 
 @router.post("/admin/purge-logs", response_model=PurgeLogsResponse, dependencies=[Depends(require_admin_token)])
@@ -152,7 +185,8 @@ def admin_system_status():
 # --- Model Parameter Management ---
 @router.get("/models/{model_id}/parameters", response_model=GetParametersResponse, dependencies=[Depends(get_api_key)])
 def get_model_parameters(model_id: str):
-    params = parameter_manager.get_parameters(model_id)
+    # Use HFModelService to get parameters if model is loaded
+    params = hf_model_service.get_parameters() if model_manager.loaded_model_id == model_id else parameter_manager.get_parameters(model_id)
     return GetParametersResponse(
         model_id=model_id,
         parameters=params,
@@ -161,7 +195,10 @@ def get_model_parameters(model_id: str):
 
 @router.put("/models/{model_id}/parameters", response_model=UpdateParametersResponse, dependencies=[Depends(get_api_key)])
 def update_model_parameters(model_id: str, req: UpdateParametersRequest):
+    # Update both persistent and in-memory parameters if model is loaded
     params = parameter_manager.update_parameters(model_id, req.parameters)
+    if model_manager.loaded_model_id == model_id:
+        hf_model_service.update_parameters(req.parameters)
     return UpdateParametersResponse(
         status="success",
         message="Parameters updated",
@@ -173,6 +210,8 @@ def update_model_parameters(model_id: str, req: UpdateParametersRequest):
 @router.post("/models/{model_id}/parameters/reset", response_model=ResetParametersResponse, dependencies=[Depends(get_api_key)])
 def reset_model_parameters(model_id: str):
     params = parameter_manager.reset_parameters(model_id)
+    if model_manager.loaded_model_id == model_id:
+        hf_model_service.reset_parameters()
     return ResetParametersResponse(
         status="success",
         message="Parameters reset to default",

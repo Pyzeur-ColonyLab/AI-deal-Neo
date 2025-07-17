@@ -14,7 +14,10 @@
 - Model listing endpoint returns all available models with correct status.
 - Model loading endpoint successfully loads models and handles model switching.
 - Model unloading endpoint successfully unloads models.
-- Only one model can be loaded at a time.
+- All chat and model management requests must be routed through `@HF_loader.py`.
+- Model parameter changes must be reflected in `@HF_loader.py`.
+- Only one model can be loaded at a time (enforced by `@HF_loader.py`).
+- All functional, performance, and error-handling tests must pass with `@HF_loader.py` as the backend.
 - Model downloading from Hugging Face Hub works correctly.
 - System correctly handles multiple model formats (Safetensors, GGUF, PyTorch, ONNX).
 - Download progress tracking and reporting works accurately.

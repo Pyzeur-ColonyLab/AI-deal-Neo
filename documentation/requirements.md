@@ -10,7 +10,7 @@
 - The API shall accept input messages and return AI-generated responses.
 
 ### FR2: AI Model Integration
-- The system shall use the existing AI model runner from the current repo to generate responses.
+- The system shall use `@HF_loader.py` as the only AI model runner for all inference and model management.
 - The system shall support at least one custom AI chatbot model.
 
 ### FR3: Multi-Channel Support
@@ -30,6 +30,7 @@
 - The system shall provide basic health and status endpoints.
 
 ### FR7: Model Management
+- Model management endpoints must interface with `@HF_loader.py` for all operations.
 - The system shall provide an endpoint to list all available AI models.
 - The system shall provide an endpoint to load a specific AI model into memory.
 - The system shall provide an endpoint to unload a specific AI model from memory.
@@ -53,6 +54,7 @@
 - The system shall provide detailed system health monitoring (disk usage, memory usage, model status).
 
 ### FR10: Model Parameter Management
+- All model parameter management is delegated to `@HF_loader.py`.
 - The system shall provide an endpoint to retrieve current parameter configuration for any model.
 - The system shall provide an endpoint to update parameter configuration for any model.
 - The system shall provide an endpoint to reset model parameters to default values.

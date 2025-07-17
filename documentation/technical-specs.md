@@ -70,7 +70,7 @@ graph TB
 - **Validation Layer**: Input validation, error handling
 - **Logging & Monitoring**: Request/response logging, health/status endpoints, log rotation/purging
 - **Model Manager**: List/load/unload/download models, enforce single-model-in-memory, track status
-- **AI Model Runner**: Interface to AI model code, inference, support for multiple formats
+- **AI Model Runner:** Now refers to `@HF_loader.py` only.
 - **Parameter Manager**: Retrieve/update/reset parameters, validation, change tracking
 - **Log Manager**: Log storage and cleanup
 - **Model Cache**: Store downloaded/loaded models

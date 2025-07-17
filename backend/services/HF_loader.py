@@ -1,3 +1,8 @@
+# DEPRECATED: This script is no longer used in production.
+# All model loading, inference, and parameter logic has been migrated to backend/services/hf_model_service.py.
+# Use the HFModelService class for all API and backend integration.
+# This file is retained for reference and CLI demo only.
+
 # Standard Library Imports
 import time
 import os
