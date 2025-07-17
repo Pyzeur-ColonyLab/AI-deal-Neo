@@ -11,12 +11,6 @@ class HFModelService:
     """
     HFModelService provides a unified interface for loading, unloading, and running inference on Hugging Face models,
     including support for PEFT/LoRA adapters. This class is designed to be used as a singleton service by the API layer.
-
-    Key Features:
-    - Loads base and optionally fine-tuned (adapter) models from Hugging Face Hub.
-    - Handles tokenizer and model initialization, device selection, and performance tuning.
-    - Provides methods for generating responses, managing generation parameters, and resetting to defaults.
-    - All model inference and management for the API should use this class.
     """
     def __init__(self):
         # Model and tokenizer objects
@@ -51,18 +45,15 @@ class HFModelService:
     def load_model(self, base_model_id: str, finetuned_model_id: str = None, config: dict = None):
         """
         Load a base model and optionally a fine-tuned adapter (PEFT/LoRA) from Hugging Face Hub.
-        If a fine-tuned model is provided, it will be merged with the base model.
-        Args:
-            base_model_id (str): Hugging Face model repo ID for the base model.
-            finetuned_model_id (str, optional): Hugging Face repo ID for the adapter/fine-tuned model.
-            config (dict, optional): Additional config (currently unused).
-        Raises:
-            Exception: If model loading fails.
+        This logic exactly matches the working @HF_loader.py script:
+        - Always load the base model from Hugging Face Hub
+        - Always load the tokenizer from the finetuned model if present
+        - Always merge the adapter with the base model
         """
         self.unload_model()  # Always unload previous model
         self.base_model_id = base_model_id
         self.finetuned_model_id = finetuned_model_id
-        # Load base model from Hugging Face
+        # Always load base model from Hugging Face Hub
         self.model = AutoModelForCausalLM.from_pretrained(
             base_model_id,
             device_map=self.device,
@@ -70,14 +61,14 @@ class HFModelService:
             torch_dtype=torch.float16,
             low_cpu_mem_usage=True,
         )
-        # Load tokenizer (prefer fine-tuned model's tokenizer if available)
+        # Always load tokenizer from finetuned model if present, else from base
         tokenizer_id = finetuned_model_id if finetuned_model_id else base_model_id
         self.tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_id,
             add_bos_token=True,
             trust_remote_code=True,
         )
-        # If fine-tuned model, load adapter and merge with base model
+        # If finetuned model, load adapter and merge with base model
         if finetuned_model_id:
             adapter = PeftModel.from_pretrained(self.model, finetuned_model_id)
             self.model = adapter.merge_and_unload()
