@@ -80,7 +80,7 @@ ft_model.eval()
 
 def generate_response(user_question):
     """
-    Generate a response for a given user question.
+    Generate a response for a given user question with high-quality settings.
     
     Args:
         user_question (str): The question to ask the model
@@ -88,36 +88,34 @@ def generate_response(user_question):
     Returns:
         str: The model's response
     """
-    # Format the prompt using Mistral's instruction format
-    formatted_prompt = f"""<s>[INST] {user_question} [/INST]"""
+    # Improved prompt: ask for a precise, expert answer
+    formatted_prompt = f"""<s>[INST] En tant qu'expert en droit du travail français, explique de façon précise et détaillée : {user_question} [/INST]"""
     
-    print(f"\n🤖 Generating response for: '{user_question}'")
+    print(f"\n🤖 Generating response for: '{user_question}' (high quality mode)")
     print("=" * 50)
     
     # Tokenize the input prompt and convert to PyTorch tensors
-    # The tokenizer converts text into numerical tokens the model can process
     model_input = eval_tokenizer(formatted_prompt, return_tensors="pt").to("cpu")
     
     # Create a streamer for real-time output
-    # This shows the response as it's being generated, token by token
     streamer = TextStreamer(eval_tokenizer, skip_prompt=True, skip_special_tokens=True)
     
-    # Disable gradient computation for inference (saves memory and speeds up generation)
     with torch.no_grad():
         start_time = time.time()
         
-        # Generate text response with optimized parameters
+        # High-quality generation settings
         output = ft_model.generate(
-            **model_input,  # Unpacks the tokenized input (input_ids, attention_mask, etc.)
-            max_new_tokens=150,  # Controls response length - increased for better responses
-            repetition_penalty=1.1,  # Prevents repetitive text - reduced for more natural flow
-            streamer=streamer,  # Enables real-time text streaming
-            do_sample=True,  # Uses probabilistic sampling vs greedy decoding
-            temperature=0.8,  # Controls randomness: slightly higher for more creative responses
-            top_p=0.9,  # Nucleus sampling - only consider top 90% probability tokens
-            pad_token_id=eval_tokenizer.eos_token_id,  # Uses EOS token for padding
-            num_return_sequences=1,  # Generate only one sequence
-            early_stopping=True,  # Stop when EOS token is generated
+            **model_input,
+            max_new_tokens=300,         # Allow longer, more complete answers
+            repetition_penalty=1.0,     # No penalty for repetition
+            do_sample=False,            # Use beam search for quality
+            num_beams=6,                # Explore multiple continuations
+            temperature=0.3,            # More focused, less random
+            top_p=0.95,                 # Consider more tokens
+            pad_token_id=eval_tokenizer.eos_token_id,
+            num_return_sequences=1,
+            # early_stopping=False,     # Let the model decide when to stop
+            streamer=streamer,
         )
         
         generation_time = time.time() - start_time
