@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: aidalneo-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=production
+      - API_KEY=${API_KEY:-your_production_api_key_here}
+      - ADMIN_TOKEN=${ADMIN_TOKEN:-your_production_admin_token_here}
+      - MODEL_CACHE_DIR=/app/models/cache
+      - LOG_DIR=/app/logs
+      - PARAMS_DIR=/app/params
+      - ALLOWED_ORIGINS=https://cryptomaltese.com,https://www.cryptomaltese.com
+      - HF_TOKEN=${HF_TOKEN:-}
+    volumes:
+      - ./models:/app/models
+      - ./logs:/app/logs
+      - ./params:/app/params
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 24G
+          cpus: '16'
+        reservations:
+          memory: 16G
+          cpus: '8'
+
+  nginx:
+    image: nginx:alpine
+    container_name: aidalneo-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  models:
+  logs:
+  params: 
