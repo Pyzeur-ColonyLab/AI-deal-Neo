@@ -144,24 +144,46 @@ class HFModelService:
         Raises:
             RuntimeError: If no model is loaded.
         """
+        print(f"=== HF MODEL SERVICE: generate_response called ===")
+        print(f"Input message: '{message[:50]}...'")
+        print(f"Parameters provided: {parameters}")
+        
         if not self.is_model_loaded():
+            print("ERROR: No model loaded!")
             raise RuntimeError("No model loaded. Please ensure the model is loaded before making inference requests.")
         
+        print("Model is loaded, proceeding with generation...")
+        
         prompt = message
+        print(f"Using prompt: '{prompt[:50]}...'")
+        
         # Tokenize input and move to correct device
+        print("Tokenizing input...")
         model_input = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+        print(f"Input tokens shape: {model_input['input_ids'].shape}")
+        
         # Merge provided parameters with defaults
         params = self.parameters.copy()
         if parameters:
             params.update(parameters)
+        
         # Remove None values (required by HF generate)
         params = {k: v for k, v in params.items() if v is not None}
+        print(f"Final generation parameters: {params}")
+        
+        print("Starting generation...")
         with torch.no_grad():
             output = self.model.generate(
                 **model_input,
                 **params
             )
+        
+        print(f"Generation complete. Output shape: {output.shape}")
         response = self.tokenizer.decode(output[0], skip_special_tokens=True)
+        print(f"Decoded response length: {len(response)}")
+        print(f"Response preview: '{response[:100]}...'")
+        print(f"=== HF MODEL SERVICE: generate_response completed ===")
+        
         return response
 
     def get_parameters(self) -> dict:
