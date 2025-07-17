@@ -37,12 +37,12 @@ class HFModelService:
         self.device = "cpu"  # Change to "cuda" if GPU is available
         # Default generation parameters (can be updated per request)
         self.parameters = {
-            "max_new_tokens": 300,
+            "max_new_tokens": 150,  # Reduced from 300 for faster responses
             "repetition_penalty": 1.0,
-            "do_sample": False,
-            "num_beams": 6,
-            "temperature": 0.3,
-            "top_p": 0.95,
+            "do_sample": True,  # Changed to True for faster generation
+            "num_beams": 1,  # Reduced from 6 for faster generation
+            "temperature": 0.7,  # Slightly increased for better quality
+            "top_p": 0.9,  # Slightly reduced for faster generation
             "pad_token_id": None,
             "num_return_sequences": 1
         }
