@@ -21,6 +21,8 @@ def health():
 @router.post("/chat", response_model=ChatResponse, dependencies=[Depends(get_api_key)])
 def chat(request: ChatRequest):
     try:
+        logger.info(f"Received chat request: message='{request.message[:50]}...', channel='{request.channel}', user_id='{request.user_id}'")
+        
         # Check if model is loaded
         if not hf_model_service.is_model_loaded():
             raise HTTPException(
@@ -28,21 +30,28 @@ def chat(request: ChatRequest):
                 detail="Model not loaded. The system is still initializing or the model failed to load."
             )
         
-        # Default parameters
+        # Default parameters - only include parameters that HF model service expects
         default_params = {
+            "max_new_tokens": 300,
             "temperature": 1.0,
-            "top_k": 50,
             "top_p": 0.9,
             "repetition_penalty": 1.0,
             "do_sample": True,
             "num_beams": 1,
-            "length_penalty": 1.0,
-            "early_stopping": False
+            "num_return_sequences": 1
         }
         
         # Merge with request parameters if provided
         if request.parameters:
-            default_params.update(request.parameters)
+            # Only include parameters that the HF model service expects
+            valid_params = {
+                "max_new_tokens", "temperature", "top_p", "repetition_penalty", 
+                "do_sample", "num_beams", "num_return_sequences", "pad_token_id"
+            }
+            filtered_params = {k: v for k, v in request.parameters.items() if k in valid_params}
+            default_params.update(filtered_params)
+        
+        logger.info(f"Using parameters: {default_params}")
         
         # Use HFModelService for inference
         response_text = hf_model_service.generate_response(request.message, default_params)
