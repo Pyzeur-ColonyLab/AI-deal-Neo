@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Standalone test server for Aid-al-Neo API
+Simple test server for Aid-al-Neo API (no reload mode)
 Run this script directly on the server to test the Python module without Docker
 """
 
@@ -52,12 +52,12 @@ def run_server():
         logger.info("API documentation at: http://localhost:8000/docs")
         logger.info("Health check at: http://localhost:8000/api/v1/health")
         
-        # Run the server
+        # Run the server without reload for simpler debugging
         uvicorn.run(
-            "backend.main:app",  # Use import string for reload
+            app,
             host="0.0.0.0",  # Allow external connections
             port=8000,
-            reload=True,  # Auto-reload on code changes
+            reload=False,  # No reload for simpler debugging
             log_level="info"
         )
         
