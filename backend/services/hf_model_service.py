@@ -91,6 +91,14 @@ class HFModelService:
         self.finetuned_model_id = None
         self.last_unloaded = datetime.utcnow().isoformat() + "Z"
 
+    def is_model_loaded(self) -> bool:
+        """
+        Check if a model is currently loaded.
+        Returns:
+            bool: True if model is loaded, False otherwise.
+        """
+        return self.model is not None and self.tokenizer is not None
+
     def generate_response(self, message: str, parameters: dict = None) -> str:
         """
         Generate a response for a given message using the loaded model and tokenizer.
@@ -102,8 +110,9 @@ class HFModelService:
         Raises:
             RuntimeError: If no model is loaded.
         """
-        if not self.model or not self.tokenizer:
-            raise RuntimeError("No model loaded")
+        if not self.is_model_loaded():
+            raise RuntimeError("No model loaded. Please ensure the model is loaded before making inference requests.")
+        
         prompt = message
         # Tokenize input and move to correct device
         model_input = self.tokenizer(prompt, return_tensors="pt").to(self.device)

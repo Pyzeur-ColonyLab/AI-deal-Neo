@@ -1,20 +1,17 @@
 # Aid-al-Neo: AI Model API Platform
 
 ## Overview
-Aid-al-Neo is a modular, production-ready AI model serving platform. It exposes a secure RESTful API for multi-channel access (Telegram, webapp, mail, etc.), supporting dynamic model management, parameter configuration, and system administration. The system is designed for high performance, security, and maintainability, and is deployable on both local Mac OS and Infomaniak server instances.
+Aid-al-Neo is a production-ready AI model serving platform that provides a simple chat API. The system automatically loads the Pyzeur/Code-du-Travail-mistral-finetune model when the container starts and is ready to serve chat requests immediately. The platform is designed for high performance, security, and maintainability, and is deployable on both local Mac OS and Infomaniak server instances.
 
 ## Architecture Summary
 - **API Server:** FastAPI backend with OpenAPI/Swagger UI
-- **Model Management:** Dynamic loading/unloading, Hugging Face Hub integration
-- **Authentication:** API key and admin token support
-- **Logging & Monitoring:** Request/response logging, health/status endpoints
-- **Parameter Management:** Per-model parameter config, validation, and reset
-- **System Admin:** Endpoints for cleanup, log purging, and resource monitoring
+- **Model Management:** Automatic pre-loading of Pyzeur/Code-du-Travail-mistral-finetune model
+- **Authentication:** API key support for secure access
+- **Logging & Monitoring:** Request/response logging, health endpoint
 - **Deployment:** Dockerized, Nginx reverse proxy, SSL/HTTPS enforced
 
 ## Directory Structure
-- `/backend/` — Source code for FastAPI backend and all modules
-- `/config/` — Environment and deployment configuration files
+- `/backend/` — Source code for FastAPI backend and HF model service
 - `/docker/` — Docker and Nginx setup
 - `/documentation/` — Requirements, technical specs, API docs, validation criteria
 
@@ -24,13 +21,63 @@ Aid-al-Neo is a modular, production-ready AI model serving platform. It exposes 
    git clone <repo-url>
    cd Aid-al-Neo
    ```
-2. **Build and run with Docker Compose:**
+2. **Set your Hugging Face token in docker-compose.yml:**
+   ```yaml
+   environment:
+     - HF_TOKEN=your_huggingface_token_here
+   ```
+3. **Build and run with Docker Compose:**
    ```bash
+   cd docker
    docker-compose up --build
    ```
-3. **Access the API:**
+4. **Access the API:**
    - Swagger UI: [https://cryptomaltese.com/docs](https://cryptomaltese.com/docs)
    - Health check: `/api/v1/health`
+   - Chat endpoint: `/api/v1/chat`
+
+## API Endpoints
+
+### POST /api/v1/chat
+Generate AI responses using the pre-loaded Pyzeur/Code-du-Travail-mistral-finetune model.
+
+**Request:**
+```json
+{
+  "message": "Your message here",
+  "channel": "webapp",
+  "user_id": "user123",
+  "parameters": {
+    "temperature": 0.7,
+    "max_length": 150
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "response": "AI generated response",
+  "model": "Pyzeur/Code-du-Travail-mistral-finetune",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "parameters_used": {
+    "temperature": 0.7,
+    "max_length": 150,
+    "top_k": 50,
+    "top_p": 0.9
+  }
+}
+```
+
+### GET /api/v1/health
+Check system health status.
+
+**Response:**
+```json
+{
+  "status": "ok"
+}
+```
 
 ## Documentation
 - [Technical Specs](documentation/technical-specs.md)
@@ -44,6 +91,7 @@ Aid-al-Neo is a modular, production-ready AI model serving platform. It exposes 
 - Docker and Docker Compose installed
 - Domain (e.g., cryptomaltese.com) pointed to your server
 - SSL certificates (Let's Encrypt recommended; see below)
+- Hugging Face token (optional, for private models)
 
 ### 1. Build and Run the System
 From the project root:
@@ -56,15 +104,14 @@ sudo docker-compose up --build -d
 ### 2. Environment Variables
 Set environment variables in `docker-compose.yml` or via a `.env` file:
 - `API_KEY`: Main API key for user access
-- `ADMIN_TOKEN`: Admin token for privileged endpoints
-- `MODEL_CACHE_DIR`, `LOG_DIR`, `PARAMS_DIR`: Data persistence paths
 - `HF_TOKEN`: (Optional) Hugging Face token for private models
+- `ALLOWED_ORIGINS`: CORS origins (default: https://cryptomaltese.com)
 
-### 3. Volumes and Persistence
-- Models, logs, and parameters are persisted via Docker volumes:
-  - `../models:/models`
-  - `../logs:/logs`
-  - `../params:/params`
+### 3. Model Pre-loading
+The system automatically loads the Pyzeur/Code-du-Travail-mistral-finetune model when the container starts. You can see the loading progress in the container logs:
+```bash
+docker logs aidalneo-backend
+```
 
 ### 4. SSL Certificates
 - Place your SSL certificates in `certs/` (or use Let's Encrypt)
@@ -83,10 +130,9 @@ sudo docker-compose up --build -d  # Rebuild and restart
 ```
 
 ### 7. Production Best Practices
-- Use strong, unique API keys and admin tokens
+- Use strong, unique API keys
 - Restrict CORS in production (see `backend/main.py`)
 - Monitor logs and resource usage
-- Regularly backup models, logs, and params
 - Keep Docker and dependencies up to date
 
 For more details, see the `docker/` directory and documentation.
@@ -115,27 +161,28 @@ To automate SSL certificate installation and renewal for `cryptomaltese.com`:
 - Certbot must be installed on the server (`sudo apt install certbot`).
 - The script will stop/start Docker services as needed.
 
-## Using Adapter (PEFT/LoRA) Models
+## Testing the API
 
-1. **Download the adapter model via the API:**
-   ```bash
-   curl -X POST "https://cryptomaltese.com/api/v1/models/download" \
-     -H "Authorization: Bearer adminchangeme" \
-     -H "Content-Type: application/json" \
-     -d '{"model_name": "Pyzeur/Code-du-Travail-mistral-finetune"}'
-   ```
-2. **Load the model via the API:**
-   ```bash
-   curl -X POST "https://cryptomaltese.com/api/v1/models/adapter_model.safetensors/load" \
-     -H "Authorization: Bearer adminchangeme"
-   ```
-3. **Test inference:**
-   ```bash
-   curl -X POST "https://cryptomaltese.com/api/v1/chat" \
-     -H "Authorization: Bearer changeme" \
-     -H "Content-Type: application/json" \
-     -d '{"message": "Hello!", "channel": "webapp", "user_id": "user123"}'
-   ```
+### Test Chat Endpoint
+```bash
+curl -X POST "https://cryptomaltese.com/api/v1/chat" \
+  -H "Authorization: Bearer changeme" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Hello! How are you?",
+    "channel": "webapp",
+    "user_id": "user123",
+    "parameters": {
+      "temperature": 0.7,
+      "max_length": 150
+    }
+  }'
+```
+
+### Test Health Endpoint
+```bash
+curl -X GET "https://cryptomaltese.com/api/v1/health"
+```
 
 ## After Pulling Latest Code on Server
 
@@ -147,15 +194,13 @@ To automate SSL certificate installation and renewal for `cryptomaltese.com`:
    ```bash
    cd docker
    docker compose down
-   docker compose up -d
+   docker compose up --build -d
    ```
-3. Verify the Hugging Face token is set in the container:
+3. Check that the model loaded successfully:
    ```bash
-   sudo docker exec -it aidalneo-backend /bin/bash
-   echo $HF_TOKEN
-   exit
+   docker logs aidalneo-backend
    ```
-4. Download, load, and test the adapter model as above.
+4. Test the chat endpoint as shown above.
 
 ## License
 MIT 
