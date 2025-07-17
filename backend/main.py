@@ -44,8 +44,8 @@ async def startup_event():
         hf_service = HFModelService()
         
         # Load the Pyzeur/Code-du-Travail-mistral-finetune model
-        # This model should be the finetuned version
-        base_model = "mistralai/Mistral-7B-Instruct-v0.2"
+        # Use the same base model as the original working script
+        base_model = "mistralai/Mistral-7B-Instruct-v0.3"
         finetuned_model = "Pyzeur/Code-du-Travail-mistral-finetune"
         
         logger.info(f"Loading model: {finetuned_model}")

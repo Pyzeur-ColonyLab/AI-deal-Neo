@@ -45,40 +45,59 @@ class HFModelService:
     def load_model(self, base_model_id: str, finetuned_model_id: str = None, config: dict = None):
         """
         Load a base model and optionally a fine-tuned adapter (PEFT/LoRA) from Hugging Face Hub.
-        This logic exactly matches the working @HF_loader.py script:
-        - Always load the base model from Hugging Face Hub
-        - Always load the tokenizer from the finetuned model if present
-        - Always merge the adapter with the base model
+        This logic handles vocabulary size mismatches and falls back to base model if adapter fails.
         """
         self.unload_model()  # Always unload previous model
         self.base_model_id = base_model_id
         self.finetuned_model_id = finetuned_model_id
-        # Always load base model from Hugging Face Hub
-        self.model = AutoModelForCausalLM.from_pretrained(
-            base_model_id,
-            device_map=self.device,
-            trust_remote_code=True,
-            torch_dtype=torch.float16,
-            low_cpu_mem_usage=True,
-        )
-        # Always load tokenizer from finetuned model if present, else from base
-        tokenizer_id = finetuned_model_id if finetuned_model_id else base_model_id
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            tokenizer_id,
-            add_bos_token=True,
-            trust_remote_code=True,
-        )
-        # If finetuned model, load adapter and merge with base model
-        if finetuned_model_id:
-            adapter = PeftModel.from_pretrained(self.model, finetuned_model_id)
-            self.model = adapter.merge_and_unload()
-        self.model.eval()
-        self.model_id = finetuned_model_id or base_model_id
-        self.last_loaded = datetime.utcnow().isoformat() + "Z"
-        # Ensure pad_token_id is set for generation
-        if self.tokenizer.pad_token_id is None:
-            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
-        self.parameters["pad_token_id"] = self.tokenizer.pad_token_id
+        
+        try:
+            # Always load base model from Hugging Face Hub
+            self.model = AutoModelForCausalLM.from_pretrained(
+                base_model_id,
+                device_map=self.device,
+                trust_remote_code=True,
+                torch_dtype=torch.float16,
+                low_cpu_mem_usage=True,
+            )
+            
+            # Always load tokenizer from finetuned model if present, else from base
+            tokenizer_id = finetuned_model_id if finetuned_model_id else base_model_id
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                tokenizer_id,
+                add_bos_token=True,
+                trust_remote_code=True,
+            )
+            
+            # If finetuned model, try to load adapter and merge with base model
+            if finetuned_model_id:
+                try:
+                    print(f"Attempting to load adapter: {finetuned_model_id}")
+                    adapter = PeftModel.from_pretrained(self.model, finetuned_model_id)
+                    self.model = adapter.merge_and_unload()
+                    print(f"Successfully loaded and merged adapter: {finetuned_model_id}")
+                except Exception as adapter_error:
+                    print(f"Failed to load adapter {finetuned_model_id}: {str(adapter_error)}")
+                    print("Falling back to base model only")
+                    # Keep the base model and tokenizer, but don't use the adapter
+                    self.finetuned_model_id = None
+            
+            self.model.eval()
+            self.model_id = self.finetuned_model_id or base_model_id
+            self.last_loaded = datetime.utcnow().isoformat() + "Z"
+            
+            # Ensure pad_token_id is set for generation
+            if self.tokenizer.pad_token_id is None:
+                self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
+            self.parameters["pad_token_id"] = self.tokenizer.pad_token_id
+            
+            print(f"Model loaded successfully: {self.model_id}")
+            
+        except Exception as e:
+            print(f"Error loading model: {str(e)}")
+            # Clean up on error
+            self.unload_model()
+            raise e
 
     def unload_model(self):
         """
