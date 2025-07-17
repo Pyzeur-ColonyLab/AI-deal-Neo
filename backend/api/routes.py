@@ -33,7 +33,6 @@ def chat(request: ChatRequest):
             "temperature": 1.0,
             "top_k": 50,
             "top_p": 0.9,
-            "max_length": 100,
             "repetition_penalty": 1.0,
             "do_sample": True,
             "num_beams": 1,
