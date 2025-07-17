@@ -17,6 +17,14 @@ router = APIRouter()
 def health():
     return {"status": "ok"}
 
+@router.post("/test")
+def test_request(request: dict):
+    """Test endpoint to see what JSON is being received"""
+    logger.info(f"=== TEST REQUEST ===")
+    logger.info(f"Received JSON: {request}")
+    logger.info(f"JSON type: {type(request)}")
+    return {"received": request}
+
 # --- Chat Endpoint ---
 @router.post("/chat", response_model=ChatResponse, dependencies=[Depends(get_api_key)])
 def chat(request: ChatRequest):
