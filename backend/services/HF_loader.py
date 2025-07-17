@@ -2,6 +2,8 @@
 import time
 import os
 from datetime import datetime
+import sys
+import threading
 
 # Third-Party Imports
 import torch
@@ -80,7 +82,7 @@ ft_model.eval()
 
 def generate_response(user_question):
     """
-    Generate a response for a given user question with high-quality settings.
+    Generate a response for a given user question with high-quality settings and a simple progress animation.
     
     Args:
         user_question (str): The question to ask the model
@@ -88,42 +90,50 @@ def generate_response(user_question):
     Returns:
         str: The model's response
     """
-    # Improved prompt: ask for a precise, expert answer
     formatted_prompt = f"""<s>[INST] En tant qu'expert en droit du travail français, explique de façon précise et détaillée : {user_question} [/INST]"""
-    
     print(f"\n🤖 Generating response for: '{user_question}' (high quality mode)")
     print("=" * 50)
-    
-    # Tokenize the input prompt and convert to PyTorch tensors
     model_input = eval_tokenizer(formatted_prompt, return_tensors="pt").to("cpu")
-    
-    # Create a streamer for real-time output
-    streamer = TextStreamer(eval_tokenizer, skip_prompt=True, skip_special_tokens=True)
-    
+
+    # Simple spinner animation to indicate progress
+    stop_spinner = False
+    def spinner():
+        symbols = ['|', '/', '-', '\\']
+        idx = 0
+        while not stop_spinner:
+            sys.stdout.write(f"\r⏳ Génération en cours... {symbols[idx % len(symbols)]}")
+            sys.stdout.flush()
+            idx += 1
+            time.sleep(0.15)
+        sys.stdout.write("\r" + " " * 40 + "\r")  # Clear the line
+        sys.stdout.flush()
+
+    spinner_thread = threading.Thread(target=spinner)
+    spinner_thread.start()
+
     with torch.no_grad():
         start_time = time.time()
-        
-        # High-quality generation settings
-        output = ft_model.generate(
-            **model_input,
-            max_new_tokens=300,         # Allow longer, more complete answers
-            repetition_penalty=1.0,     # No penalty for repetition
-            do_sample=False,            # Use beam search for quality
-            num_beams=6,                # Explore multiple continuations
-            temperature=0.3,            # More focused, less random
-            top_p=0.95,                 # Consider more tokens
-            pad_token_id=eval_tokenizer.eos_token_id,
-            num_return_sequences=1,
-            # early_stopping=False,     # Let the model decide when to stop
-            streamer=streamer,
-        )
-        
+        try:
+            output = ft_model.generate(
+                **model_input,
+                max_new_tokens=300,
+                repetition_penalty=1.0,
+                do_sample=False,
+                num_beams=6,
+                temperature=0.3,
+                top_p=0.95,
+                pad_token_id=eval_tokenizer.eos_token_id,
+                num_return_sequences=1,
+                # No streamer here!
+            )
+        finally:
+            stop_spinner = True
+            spinner_thread.join()
+
         generation_time = time.time() - start_time
         print(f"\n" + "=" * 50)
         print(f"⏱️  Generation completed in {generation_time:.2f} seconds")
         print(f"📊 Generated {len(output[0]) - len(model_input['input_ids'][0])} new tokens")
-        
-        # Decode and return the full response
         full_response = eval_tokenizer.decode(output[0], skip_special_tokens=True)
         return full_response
 
