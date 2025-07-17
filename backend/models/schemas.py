@@ -6,7 +6,6 @@ class ChatRequest(BaseModel):
     message: str
     channel: str
     user_id: str
-    parameters: Optional[Dict[str, Any]] = None
 
 class ChatResponse(BaseModel):
     response: str

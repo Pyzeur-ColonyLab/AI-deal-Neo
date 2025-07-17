@@ -23,7 +23,6 @@ def chat(request: ChatRequest):
     try:
         logger.info(f"=== CHAT REQUEST START ===")
         logger.info(f"Received chat request: message='{request.message[:50]}...', channel='{request.channel}', user_id='{request.user_id}'")
-        logger.info(f"Request parameters: {request.parameters}")
         
         # Check if model is loaded
         logger.info(f"Checking if model is loaded...")
