@@ -17,6 +17,34 @@ router = APIRouter()
 def health():
     return {"status": "ok"}
 
+@router.get("/models", dependencies=[Depends(get_api_key)])
+def list_models():
+    """List available models"""
+    try:
+        logger.info("=== MODELS LIST REQUEST ===")
+        
+        # Check if model is loaded
+        model_loaded = hf_model_service.is_model_loaded()
+        
+        models = [
+            {
+                "id": "code-du-travail-mistral",
+                "name": "Code du Travail Mistral",
+                "status": "loaded" if model_loaded else "available",
+                "description": "French labor law assistant model",
+                "parameters": hf_model_service.get_parameters() if model_loaded else {}
+            }
+        ]
+        
+        logger.info(f"Returning {len(models)} models")
+        logger.info("=== MODELS LIST REQUEST END ===")
+        
+        return {"models": models}
+        
+    except Exception as e:
+        logger.error(f"Error in models endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/test")
 def test_request(request: dict):
     """Test endpoint to see what JSON is being received"""
